@@ -1,0 +1,98 @@
+---
+title: "gas"
+output: html_document
+---
+
+```{r} 
+library(tidyverse) # general manipulation
+library(readxl) # read xlsx file
+library(lubridate) # date manipulation
+library(snakecase) # standardize text to snakecase
+library(grid) # paste a grob image
+library(jpeg) # read jpeg files
+library(gganimate) # animate the graph
+library(extrafont) # custom fonts
+```
+
+```{r}
+gas_full <- read_xlsx("Unleaded_Retail (Incl. Tax)_DAILY_2020.xlsx")
+
+gas_full_df <- gas_full[-c(1,2),]
+
+names(gas_full_df) <- c("city", paste0("2020/", as.character(gas_full[2,-1])))
+```
+
+```{r}
+toronto_gas_2020 <- gas_full_df %>%
+  gather(date, gasoline_price, 2:90) %>%
+  select(city, date, gasoline_price) %>%
+  filter(city == "CITY OF TORONTO*") %>%
+  mutate(city = to_snake_case(city),
+         date = ymd(date),
+         gasoline_price = as.numeric(gasoline_price)) %>%
+  drop_na()
+```
+
+
+```{r}
+gas_pump_background <- rasterGrob(
+  readJPEG("gas_pump_43.jpg"),  
+  interpolate=TRUE)
+```
+
+```{r, fig.height = 4, fig.width = 7.2, dev = "cairoPNG"}
+p <- toronto_gas_2020 %>%
+  ggplot(aes(x=date,y=gasoline_price)) +
+  annotation_custom(gas_pump_background,  
+                    xmin = as.Date("2019-12-01"), xmax = as.Date("2020-05-01"), 
+                    ymin = 25, ymax = 175) +
+  geom_line(size = 1.5, colour = "yellow") +
+  labs(title = "Toronto 2020\nRegular Unleaded Gasoline Prices",
+       subtitle = "—Cents per liter",
+       caption = "SOURCE: Kent Group Ltd.",
+       x = "",
+       y = "") +
+  scale_y_continuous(position = "right", breaks = c(120, 100, 80), labels = c("???", "???", "???")) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = "black"),
+        panel.border = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line.x.bottom = element_line(colour = "white", size = 0.8),
+        axis.line.y.right = element_line(colour = "white", size = 0.8),
+       plot.background = element_rect(colour = "black", 
+                                       fill = "black"),
+        plot.title = element_text(family = "Inter ExtraBold",
+                                      colour = "white", size = 18, lineheight = 1),
+        axis.text.x = element_text(colour = "white", face = "bold"),
+        axis.text.y = element_text(colour = "white", face = "bold", size = 10),
+        
+        axis.title.y = element_text(colour = "white", face = "bold"),
+        plot.caption = element_text(family = "Inter ExtraBold", 
+                                    colour = "grey70", face = "bold", size = 8),
+        plot.subtitle = element_text(family = "Inter ExtraBold", 
+                                         face = "bold", colour = "yellow"),
+        plot.margin = unit(c(0.5, 0.5, 0.5, 1), "cm")) +
+  coord_cartesian(clip = "off")
+
+animated_plot <- p + 
+  transition_reveal(date)
+```
+
+```{r}
+library(av)
+options(gganimate.dev_args = list(height = 4, 
+                                  width = 7.2,  # needs to be flexible based on number of scorers.
+                                  units = 'in', 
+                                  type = "cairo", 
+                                  res = 144))
+
+t1 <- Sys.time()
+
+animate(plot = animated_plot, fps = 20, duration = 2, renderer = av_renderer("visuals/toronto_gas_mystery.mp4"))
+
+t2 <- Sys.time()
+
+t2 - t1
+beepr::beep()
+```
