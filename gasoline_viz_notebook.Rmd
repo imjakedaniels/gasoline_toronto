@@ -15,7 +15,7 @@ library(extrafont) # custom fonts
 ```
 
 ```{r}
-gas_full <- read_xlsx("Unleaded_Retail (Incl. Tax)_DAILY_2020.xlsx")
+gas_full <- read_xlsx("data/Unleaded_Retail (Incl. Tax)_DAILY_2020.xlsx")
 
 gas_full_df <- gas_full[-c(1,2),]
 
@@ -36,7 +36,7 @@ toronto_gas_2020 <- gas_full_df %>%
 
 ```{r}
 gas_pump_background <- rasterGrob(
-  readJPEG("gas_pump_43.jpg"),  
+  readJPEG("background_image/gas_pump_43.jpg"),  
   interpolate=TRUE)
 ```
 
